@@ -36,10 +36,6 @@ tau_max = 1000;
 start_rain = 1;
 evap_parameter = 1;
 
-% Sensible heat
-start_qsh = 0;
-y_grad = 10;        % Exponential decay of within-debris wind speed with depth
-
 yearly_tempsfc_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
 yearly_psi_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
 yearly_lnet_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
@@ -113,8 +109,6 @@ for n = 1:no_gridpointsx
             rh_deb = (max(0,rh_AWS));
             w = 0;
             tsnow_sfc = 0;
-%             fract_cov = fract_deb(n,l);
-%             fract_cov = exp(-10*debris_thickness);
             fract_cov = 1;
 
             %% Initialization loop
@@ -151,7 +145,6 @@ for n = 1:no_gridpointsx
             % Compute height of each layer
             
             debris_thickness = th_deb(n,l)./100;
-%             debris_thickness = 1.5;
             h = debris_thickness / 10;
             
             % Compute various information needed 
@@ -779,12 +772,6 @@ for n = 1:no_gridpointsx
                    if start_rain == 1
                      heat_rain;
                    end
-
-                   if start_qsh == 1
-                     SHF_within_debris;
-                   end
-
-%                    heat_rain2;
                 
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SUB-DEBRIS ENERGY FOR MELTING %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -935,231 +922,3 @@ for n = 1:no_gridpointsx
         end
     end
 end
-
-%% Post-processing
-
-for b = 1:tmax
-    for gg = 1:1:no_gridpointsx
-        for ll = 1:no_gridpointsy
-            if mask(gg,ll) < 2
-                yearly_massbal_deb_ice(b,gg,ll) = NaN;
-            end
-        end
-    end
-end
-
-Td(Td==0)=273.15;
-
-%% Calculate SMB with fractional debris-covered area
-
-% Fractional clean ice / debris-covered area
-
-% for gg = 1:no_gridpointsx
-%     for ll = 1:no_gridpointsy
-%         if th_deb(gg,ll) > 0.5 && th_deb(gg,ll) <= 1.5
-%             yearly_fract_cov(gg,ll) = 0.95;
-%         elseif th_deb(gg,ll) > 1.5
-%             yearly_fract_cov(gg,ll) = (1 / (0.962+exp((th_deb(gg,ll)-3.252))));
-%         end
-%         if mask(gg,ll) < 2
-%             yearly_fract_cov(gg,ll) = NaN;
-%         end
-%     end
-% end
-% 
-% for gg = 1:no_gridpointsx
-%     for ll = 1:no_gridpointsy
-%             yearly_fract_cov(gg,ll) = 1-((0+1/(1+exp(-((th_deb(gg,ll))+5.538)/1.988))^85.18));
-%         if mask(gg,ll) < 2
-%             yearly_fract_cov(gg,ll) = NaN;
-%         end
-%     end
-% end
-% 
-% yearly_massbal_deb_ice2 = squeeze(yearly_massbal_deb_ice(end,:,:));
-% yearly_massbal_clean_ice2 = squeeze(yearly_massbal_clean_ice(end,:,:));
-% yearly_smb_total = ((1-yearly_fract_cov).*yearly_massbal_deb_ice2)+(yearly_fract_cov.*yearly_massbal_clean_ice2);
-% 
-% yearly_meltice_deb2 = squeeze(sum(yearly_meltice_deb,1));
-% yearly_meltice_tsfc2 = squeeze(sum(yearly_meltice_tsfc,1));
-% yearly_mice_total = ((1-yearly_fract_cov).*yearly_meltice_deb2)+(yearly_fract_cov.*yearly_meltice_tsfc2);
-
-%% Plot data
-
-% yearly_deb(yearly_deb>273.15)=273.15;
-
-% yearly_qnet_deb(mask==0)=NaN;
-% yearly_lnet_deb(mask==0)=NaN;
-% yearly_shf_deb(mask==0)=NaN;
-% yearly_lhf_deb(mask==0)=NaN;
-% temp_glacier(mask==0)=NaN;
-% 
-% figure,
-% subplot(1,2,1)
-% imagesc(squeeze(mean(yearly_deb,1))-273.15),colorbar
-% subplot(1,2,2)
-% imagesc(squeeze(nanmean(temp_glacier,1))),colorbar
-% 
-% lw_out_obs = [342.1	325	319	335	393.7	416.2	363.2	338	331.3	324.8	325.1	337.7	415	437.5	370.6	344.3	331.3	318.5	312.3	328.3	391.5	405	347.3	335.5	325.2	319.5	313.1	335.7	396.4	380.6	366.6	340.5	325.5	317.7	313.8	338.4	390	412.5	388	344.3	330.4	319.4	317.4	334	386.4	376.8	356.7	339.3	332	323.7	314.7	338.7	400.3	433	410.5	365.8	343.1	327.8	317.1	341	423.4	451.3	404	365.7	343.1	330.9	324	347.7	405.6	411.3	346.4	332.8	328.3	326.4	325.6	348.1	385.5	419.2	406.5	348.7	329.6	320.8	322	342.5	412.5	452.3	420.3	377.1	348.8	335.6	332.5	352.1	412.6	411.6	396.4	361.4	341.7	338.7	337.6	359.8	418.9	437.6	388.9	360.7	357.2	347.3	350.4	360.9	394.8	392.4	376.7	348.3	340	336.2	336.3	354.6	400.4	402.2	386.4	349.9	340.1	335.8	333.4	338.5	350	362.5	352.6	341	338.7	335.4	334.9	347.5	376.9	374.7	382.5	357.1	351.1	344.9	341.3	358.4	377.7	383	370.6	355.6	340.6	343.3	341.6	353.9	402.7	385.4	356.3	333.4	334.1	335.5	336.7	352	382	404.2	362.3	336.9	333.3	332.4	335.4	355.2	382.5	381.4	370.9	343.6	338.3	333.8	332.6	348	390.4	387.8	359.2	339.3	326.1	324.8	327.1	337.8	388	435.4	379.8	364.2	339.9	331.2	327.2	346.4	397.8	371.5	349.2	340.5	332.4	329.8	325.7	340.7	370.1	386.6	363.6	351.1	339.9	324.9	316.5	346.1	389.1	387.4	388	355.9	342.4	337.9	336	351.4	404.5	408.3	374	344.1	331.3	332.3	331.4	328.2	344.8	347.5	326.3	315.4	312	304.8	302.8	309.7	352.8	354.8	325.8	318	317.3	316.6	317.5	336.5	380.2	371.2	358.7	341.3	319.9	309.3	304.6	325.2	409.6	437.1	408.5	359	346.7	330.7	319.3	335.6	408.7	367.8	346	340.6	331	329.6	326.7	341	387.2	384.8	375	346.7	334.7	325.7	325.1	340.7	407.9	415.3	372.2	345.9	335.9	321	321.9	335	405.4	426.7	384.4	352	330.7	321	316.8	334.4	413.7	446.6	413.3	373.9	350	332.8	333.4	348	416.2	452.1	430.3	380	355	349.3	338.3	350.4	402.1	399.8	364.6	346.1	334.4	331.5	328.2	335.3	361.8	349.4	336.6	323.2	322.4	321.6	313.8	330.1	345.3	387.5	379.5	338.4	311.3	311.5	310.2	315.5	372.7	394	334.3	313.9	307.5	299.5	296	315	384.8	387.2	350.3	330	320.7	316.1	313.5	314.6	315.8	318.4	316.4	311.4	297.2	289.8	283.9	292.3	327.9	351.6	349.7	328.7	314.4	309.8	313.8	332.1	388.4	405.7	369	339.1	323.3	315.4	309.8	328.7	405.3	441.5	399.8	366.3	349	330.1	319.6	331.5	419.6	450.9	409.3	362.3	344.3	337.6	324.8	340.5	411.2	433.9	410.8	361.6	339.9	334.6	340.1	342.7	380.6	382	354.9	345.3	325.4	323.4	322.3	330.9	386.8	419.4	386.9	355.3	332.7	325	318.7	332.3	387.8	399.2	370	342.7	326.2	323	314.1	317.1	369.7	420.4	368.7	319	305.3	293.5	289	294.5	340.4	392.5	357.9	309.2	298.1	292.5	299.3	308.6	323.6	379.2	355.2	316.2	301.8	301.4	300.1	306.4	397	429.2	397	349.2	331.7	325.5	317.6	326.7	416.7	426.1	398.6	359	332.9	332.4	320.3	321.9	409.9	430.7	380.2	353.1	330.6	322.1	312.5	313.8	400.9	430.2	404.2	355.5	326.7	310.4	300.5	309.4	380.6	428.7	390.8	357	327.3	316.6	309.9	312.1	394.3	423.5	409.5	362.2	337.1	320.9	312.3	315.9	405.2	437.2	406.2	362.4	341.4	333.3	319	320.5	410.3	425.4	376.9	349.3	338	327.5	318.3	321.7	399.1	389.3	357.7	342.7	334.4	332.7	331.2	328.8	385.9	357.2	352.4	330.8	323.1	317.4	309.5	315.9	391.6	360.8	346	335.4	328.8	331.6	329.4	347.4	371.6	371.3	351.8	341.5	338.1	336.3	336.2	339.8	333.1	341.3	334.7	324.2	321.6	313.4	310.6	318.4	365.6	381.8	366.4	345.3	332.6	323.7	315.4	319.1	393.7	395.8	380.2	351.2	331.3	324.2	319.9	324.1	393.6	411.8	368.7	336.6	325.7	321.6	320.6	325.7	391.1	387.9	368.1	344.6	329	329.8	327.2	340.6	372.3	376.5	344.7	330.8	322	312.6	308.9	318.4	384.5	418.3	364.3	343	327.1	325	314.6	320.7	368	359.2	351.2	335.7	332.6	332	329.1	332.6	339.8	339.5	331.9	325.9	327.7	325.8	325.6	334.3	349.4	360.4	340.6	329	320.8	319	320.5	332.3	371.8	361	335.4	327.5	323	315.9	316.7	323.2	360.8	353.2	335.2	316.1	314.9	313.7	313.7	319.1	344.3	341.6	329.7	319.1	313.1	301.9	295.4	295.5	364	404.5	355.7	331.3	312	304.1	300.6	302.6	363.5	378.7	365.9	332.9	324.9	316.3	316.1	319.2	315.4	315.3	313.9	313.7	313.5	313.3	313	314	324.8	319.1	323.1	315.4	314.6	315.9	315.2	314.9	322	317.8	315.2	312	310.4	308.3	307.4	310.3	299.8	326.2	318.8	297.7	283.2	280.6	277.6	277.5	337	345.5	350.2	312	299.8	293.8	290.1	291.5	350.3	376.5	346.6	319.1	310.8	302.9	299.8	310.8	346.8	348.3	317.3];
-% lw_out_mod = Lout_deb(2185:2887);
-% 
-% idx_0=find(lw_out_mod>306.167 & lw_out_mod<306.169);
-% lw_out_obs(idx_0)=[];
-% lw_out_mod(idx_0)=[];
-% 
-% % lw_out_mod = lw_out_mod+10;
-% 
-% temp_obs=(lw_out_obs/(em_d*5.67*0.00000001)).^(1/4)-273.15;
-% temp_mod=(lw_out_mod/(em_d*5.67*0.00000001)).^(1/4)-273.15;
-% 
-% y=lw_out_obs;
-% yhat=lw_out_mod;
-% mean((y - yhat).^2);
-% rmse = sqrt(mean((y - yhat).^2));
-% rmse;
-% 
-% clearvars sumrmse rmsevalue n ind_deb ind_nan yearly_runoff
-% 
-% figure,
-% subplot(1,2,1)
-% plot(lw_out_obs), hold on, plot(lw_out_mod)
-% xlim([0 638])
-% grid on, box on, grid minor,
-% subplot(1,2,2)
-% scatter(lw_out_obs,lw_out_mod,20,'b','filled')
-% xlim([250 500])
-% ylim([250 500])
-% grid on, box on, grid minor,
-% p2 = polyfit(lw_out_obs,lw_out_mod,2);
-% pred = polyval(p2,lw_out_obs);
-% Rsq = 1 - sum((lw_out_mod - pred).^2)/sum((lw_out_mod - mean(lw_out_mod)).^2);
-% 
-% avg = mean(lw_out_obs(:))-mean(lw_out_mod(:));
-% std_deb = std(lw_out_obs(:))-std(lw_out_mod(:));
-% mb_deb = yearly_massbal_deb_ice(end,70,117);
-% mb_deb = yearly_massbal_deb_ice(end,47,76);
-% mb_deb
-% [rmse Rsq avg std_deb mb_deb]
-
-% lw_out_obs = transpose(lw_out_obs);
-% lw_out_mod = transpose(lw_out_mod);
-
-%%
-
-% acc_th_0_cm=squeeze(solid_prec_glacier(:,n,l));
-% acc_th_0_cm = sum(acc_th_0_cm(:));
-% meltsnow_th_0_cm=squeeze(yearly_meltsnow_deb(:,n,l));
-% meltsnow_th_0_cm = sum(meltsnow_th_0_cm(:));
-% meltice_th_0_cm=squeeze(yearly_meltice_deb(:,n,l));
-% meltice_th_0_cm = sum(meltice_th_0_cm(:));
-% runoff_th_0_cm=squeeze(yearly_runoff_deb(:,n,l));
-% runoff_th_0_cm = sum(runoff_th_0_cm(:));
-% smb_th_0_cm=yearly_massbal_deb_ice(end,n,l);
-% ans2(A,1) = smb_th_0_cm;
-% ans2(A,2) = rhor;
-
-% dsnow=mean(dsnow_deb);
-% 
-% ans2(A,:)=[acc_th_0_cm meltsnow_th_0_cm meltice_th_0_cm runoff_th_0_cm smb_th_0_cm debris_thickness fract_cov];
-% mb_clean_ice = yearly_massbal_clean_ice(end,n,l);
-% ans2(:,8) = ans2(:,5)./mb_clean_ice;
-
-% if A == S2
-%     
-%     ind = find(min(abs(ans2(:,5) - mb_clean_ice)) == abs(ans2(:,5) - mb_clean_ice));
-%     crit_deb(n,l) = ans2(ind,6)*100;
-%     
-%     ind = find(max(ans2(:,8)));
-%     eff_deb(n,l) = ans2(ind,6)*100;
-%     melt_enh_deb(n,l) = ans2(ind,8);
-%     
-% end
-
-% ans=[acc_th_0_cm meltsnow_th_0_cm meltice_th_0_cm runoff_th_0_cm smb_th_0_cm debris_thickness fract_cov];
-% ans(A,:)=[smb_th_0_cm debris_thickness fract_cov];
-%%
-% 
-% subplot(1,3,1)
-% scatter(lw_out_obs,lw_out_mod,20,'b','filled')
-% xlim([200 500])
-% ylim([200 500])
-% yticks([200 300 400 500])
-% xticks([200 300 400 500])
-% grid on, box on, grid minor,
-% ylabel('L\uparrow mod (W m^-^2)')
-% xlabel('L\uparrow obs (W m^-^2)')
-% set(gca,'FontSize',14)
-% set(gcf, 'color', 'white')
-% 
-% daily_val_summer_script = 'Data/daily_values_summerdeb.m';
-% run(daily_val_summer_script);
-% 
-% subplot(1,3,2)
-% plot(qnetjja,'Color',[0.9100    0.8100    0.1700],'LineWidth',1.5), hold on
-% plot(lnetjja,'b','LineWidth',1.5), hold on
-% plot(shfjja,'Color',[135/255,206/255,235/255],'LineWidth',1.5), hold on
-% plot(lhfjja,'Color',[2/255,143/255,1/255],'LineWidth',1.5), hold on
-% plot(qcjja,'Color',[255/255,51/255,153/255],'LineWidth',1.5), hold on
-% grid on
-% box on
-% grid minor
-% ylim([-300 750])
-% set(gca,'FontSize',14)
-% ylabel('Energy flux (W m^-^2)')
-% xlabel('Hour')
-% xlim([1 9])
-% xticks([1 2 3 4 5 6 7 8 9])
-% yticks([-300 -150 0 150 300 450 600 750])
-% xticklabels({'0','3','6','9','12','15','18','21','24'})
-% leg=legend('S_n_e_t','L_n_e_t','Q_S_H','Q_L_H','Q_C','Location','NorthWest','FontSize',10);
-% leg.ItemTokenSize = [10,10];
-% set(gcf, 'color', 'white')
-% 
-% daily_val_summer_script = 'Data/daily_temp_values_summer.m';
-% run(daily_val_summer_script);
-% 
-% subplot(1,3,3)
-% plot(tajja,'r','LineWidth',1.5), hold on
-% plot(tempsfcjja,'b','LineWidth',1.5),
-% xlim([1 9])
-% xticks([1 2 3 4 5 6 7 8 9])
-% xticklabels({'0','3','6','9','12','15','18','21','24'})
-% set(gcf, 'color', 'white')
-% grid on, box on, grid minor,
-% set(gca,'FontSize',14)
-% xlabel('Hour')
-% ylabel(['Temperature (' char(176) 'C)'])
-% ylim([2 22])
-% yticks([2 6 10 14 18 22])
-% yyaxis right
-% plot(ujja,'k','LineWidth',1.5), hold on
-% ylabel(['Wind speed (m s^-^1)'])
-% ax = gca;
-% ax.YAxis(1).Color = 'k';
-% ax.YAxis(2).Color = 'k';
-% leg=legend('T_a','T_s','u','Location','NorthWest','FontSize',10);
-% leg.ItemTokenSize = [10,10];
-% ylim([0.5 4])
-% 
-% ans2(A,:)=[nanmean(qnetjja(:)) nanmean(lnetjja(:)) nanmean(shfjja(:)) nanmean(lhfjja(:)) nanmean(qcjja(:)) nanmean(qmjja(:))];
-% 
-clearvars a_C* b_C* c_C* d_C* A_C* S_C* C j SEB T_diff Qnet_deb Lnet_deb ...
-    SHF_deb LHF_deb dQnet_deb dLnet_deb dSHF_deb dLHF_deb ...
-    dF_deb n_iterations Ts_past eS_saturated eZ_saturated ...
-    eS eZ temp_data_deb temp_deb prec_deb solarslopingsfc_deb ...
-    lw_in_deb u_deb p_deb tau_deb alb_deb rh_deb alb_deb tau_deb ...
-    solid_prec_glacier_debr meltsnow Wsnow w meltice debris_thickness h ...
-    Qc_deb_deb Qm_deb dQc_deb_deb Qm_ice N_iterations
-% 
-% mb_fractcov1 = squeeze(yearly_massbal_deb_ice(end,:,:));
-% imagesc(mb_fractcov1),colorbar;
-
-th_deb2=th_deb(:);
-fr_deb2=fract_deb(:);
-idx=find(isnan(th_deb2));
-th_deb2(idx)=[];
-fr_deb2(idx)=[];
-
-mb_end2 = squeeze(yearly_massbal_deb_ice(end,70,117));
-mb_end2(mb_end2<-10)=NaN;
-mb_end2 = mean(mb_end2(:),'omitnan');
