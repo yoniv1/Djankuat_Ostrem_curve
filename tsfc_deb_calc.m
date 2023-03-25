@@ -22,10 +22,7 @@ i = 1;
 
 % Moisture
 start_moist = 0;        % 0 = no, 1 = yes
-deg_sat = 2;
-if start_moist >= 1     % 0 = dry, 1 = partially saturated (bottom layer), 2 = saturated, 3 = simplifiied percolation scheme
-    deg_sat = 2;
-end
+deg_sat = 2;            % % 0 = dry, 1 = partially saturated (bottom layer), 2 = saturated, 3 = simplifiied percolation scheme
 t_tune = 500;
 tau_min = 1;
 tau_max = 1000;
@@ -33,41 +30,6 @@ tau_max = 1000;
 % Rain
 start_rain = 1;
 evap_parameter = 1;
-
-% Matrices to save
-yearly_tempsfc_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_psi_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_lnet_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_shf_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_lhf_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qnet_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qin_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_albedo_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_u_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_dsnow_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qc_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_runoff_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_meltsnow_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_Wsnow_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_w_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_meltice_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_ez_saturated_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_es_saturated_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_ez_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_es_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qz_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qs_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_rh = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_ta_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_tau_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_lout_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qm_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qrain_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_massbal_deb_ice = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_fract_cov = zeros(no_gridpointsx,no_gridpointsy);
-yearly_qrain_sfc_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_qrain_temp_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
-yearly_lin_deb = zeros(tmax,no_gridpointsx,no_gridpointsy);
 
 %% Start the loop to determine snow cover evolution
 
