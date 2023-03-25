@@ -20,17 +20,17 @@ for n = 1:no_gridpointsx
 
             %% Initialization variables
             
-            temp_data_tsfc = temp_glacier(:,n,l);
+            temp_data_tsfc = temp_glacier(:,n,l);                   % Air temperature
             temp_tsfc = temp_data_tsfc+273.15;
-            prec_tsfc = prec_glacier(:,n,l);
-            solarslopingsfc_tsfc = solarslopingsfc(:,n,l);
-            solid_prec_glacier_tsfc = solid_prec_glacier(:,n,l);
-            lw_in_tsfc = lw_in(:,n,l);
-            u_tsfc = u(:,n,l);
-            p_tsfc = P(:,n,l);
-            tau_tsfc = tau_glacier(:,n,l);
-            rh_tsfc = rh_AWS;
-            dsnow_tsfc = 0;
+            prec_tsfc = prec_glacier(:,n,l);                        % Precipitation
+            solarslopingsfc_tsfc = solarslopingsfc(:,n,l);          % Incoming solar radiation on a sloping surface
+            solid_prec_glacier_tsfc = solid_prec_glacier(:,n,l);    % Accumulation
+            lw_in_tsfc = lw_in(:,n,l);                              % Incoming longwave radiation
+            u_tsfc = u(:,n,l);                                      % Wind speed
+            p_tsfc = P(:,n,l);                                      % Air pressure
+            tau_tsfc = tau_glacier(:,n,l);                          % Atmospheric transmissivity
+            rh_tsfc = rh_AWS;                                       % Relative humidity
+            dsnow_tsfc = 0;                                        
             w = 0;
             tsnow_sfc = 0;
 
@@ -40,13 +40,13 @@ for n = 1:no_gridpointsx
             Ts_past = zeros(1, tmax);
             n_iterations = zeros(1, tmax);
             
-            Qnet_tsfc = zeros(1, tmax);
-            Lnet_tsfc = zeros(1, tmax);
-            Lout_tsfc = zeros(1, tmax);
-            SHF_tsfc = zeros(1, tmax);
-            Qrain_tsfc = zeros(1, tmax);
-            LHF_tsfc = zeros(1, tmax); 
-            F_tsfc = zeros(1, tmax);
+            Qnet_tsfc = zeros(1, tmax);     % Net solar radiation
+            Lnet_tsfc = zeros(1, tmax);     % Net longwave radiation
+            Lout_tsfc = zeros(1, tmax);     % Outgoing longwave radiation
+            SHF_tsfc = zeros(1, tmax);      % Sensible heat flux
+            Qrain_tsfc = zeros(1, tmax);    % Rain heat flux
+            LHF_tsfc = zeros(1, tmax);      % Latent heat flux
+            F_tsfc = zeros(1, tmax);        % Net energy flux
             
             dQnet_tsfc = zeros(1, tmax);
             dLnet_tsfc = zeros(1, tmax);
@@ -55,11 +55,11 @@ for n = 1:no_gridpointsx
             dLHF_tsfc = zeros(1, tmax);
             dF_tsfc = zeros(1, tmax);
             
-            eS_saturated = zeros(1, tmax);
+            eS_saturated = zeros(1, tmax);  % Saturated vapor pressure
             eZ_saturated = zeros(1, tmax);
-            eS = zeros(1, tmax);
+            eS = zeros(1, tmax);            % Vapor pressure
             eZ = zeros(1, tmax);
-            qS = zeros(1, tmax);
+            qS = zeros(1, tmax);            % Specific humidity
             qZ = zeros(1, tmax);
 
                 %% Surface temperature and surface energy fluxes calculation  
