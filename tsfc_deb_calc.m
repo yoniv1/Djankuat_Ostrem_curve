@@ -20,17 +20,6 @@ em_d = 0.90;                 % Surface emissivity debris
 
 i = 1;
 
-% Moisture
-start_moist = 0;        % 0 = no, 1 = yes
-deg_sat = 2;            % % 0 = dry, 1 = partially saturated (bottom layer), 2 = saturated, 3 = simplifiied percolation scheme
-t_tune = 500;
-tau_min = 1;
-tau_max = 1000;
-
-% Rain
-start_rain = 1;
-evap_parameter = 1;
-
 %% Start the loop to determine snow cover evolution
 
 for n = 1:no_gridpointsx
@@ -125,18 +114,14 @@ for n = 1:no_gridpointsx
             vol_heat_cap_deb = zeros(N,tmax);
             k_eff_deb = zeros(N,tmax);
             C_deb = zeros(N,tmax);
-            tau_j = zeros(N,tmax);
-            wi = zeros(N,tmax);
-            advz = zeros(N,tmax);
-            t_change = zeros(N,tmax);
-            Q_rain_LWS = zeros(N,tmax);
-            SHF_within_deb = zeros(N,tmax);
             
             % Note notation in loop: "i-1" refers to the past
 
                 %% Surface temperature and surface energy fluxes calculation  
                   
                 for i = 1:tmax
+
+                    % Porosity with depth
                     
                     debris_depth(2:N-1,i) = linspace(0,debris_thickness,N-2);
                     phi_deb2(2:N-1,i) = max(0,linspace(phi_deb,phi_low,N-2));
@@ -186,14 +171,18 @@ for n = 1:no_gridpointsx
                    end
                    
                    % Surface fluxes
-        
+
+                   % Shortwave net
                    Qnet_deb(i) = tau_deb(i).*(1-alb_deb(i)).*solarslopingsfc_deb(i);
-                   
+
+                  % Longwave net
                    Lout_deb(i) = em_s.*(stf_bltz.*Td(1,i).^4);
                    Lnet_deb(i) = lw_in_deb(i) - Lout_deb(i);
-                   
+
+                   % Sensible heat flux
                    SHF_deb(i) = rhoa.*cA.*(C_ex_ice).*u_deb(i).*T_diff(i);
-                   
+
+                   % Latent heat flux
                    if temp_deb(i) > 273.15
                         eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
                         eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
@@ -212,30 +201,32 @@ for n = 1:no_gridpointsx
                         qZ(i) = 0;
                    end
 
+                   % Rain heat flux
                    if prec_deb(i) > 0 && solid_prec_glacier_deb(i) == 0;% && dsnow_deb(i) == 0
                        Qrain_sfc_deb(i) = cW.*rhow.*(prec_deb(i)./(sechr)).*(temp_data_deb(i));
                    end
-                   
+
+                   % Total energy flux
                    F_deb(i) = Qnet_deb(i) + Lnet_deb(i) + SHF_deb(i) + LHF_deb(i) + Qrain_sfc_deb(i);
         
                    % Calculate derivative of fluxes w.r.t surface temperature
-        
+                   % Shortwave net
                    dQnet_deb(i) = 0;
-                   
+                   % Longwave net
                    dLnet_deb(i) = -4.*em_s.*(stf_bltz).*Td(1,i).^3;
-                   
+                   % Sensible heat
                    dSHF_deb(i) = -1.*rhoa.*cA.*(C_ex_ice).*u_deb(i);
-                   
+                   % Latent net
                    if temp_deb(i) > 273.15
                         dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_ice).*u_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
                    else
                         dLHF_deb(i) = 0;
                    end
-
+                   % Rain heat
                    if prec_deb(i) > 0 && solid_prec_glacier_deb(i) == 0;% && dsnow_deb(i) == 0
                        dQrain_sfc_deb(i) = -cW.*rhow.*(prec_deb(i)./(sechr));
                    end
-                   
+                   % Total energy flux
                    dF_deb(i) = dQnet_deb(i) + dLnet_deb(i) + dSHF_deb(i) + dLHF_deb(i) + dQrain_sfc_deb(i);
         
                    % Newton-Raphson method to solve for surface temperature
@@ -340,13 +331,15 @@ for n = 1:no_gridpointsx
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% IN THE CASE SNOW IS ABSENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-                   elseif dsnow_deb(i) == 0
+                % Now we do the debris surface
+
+                   elseif dsnow_deb(i) == 0 
                       
                     n_iterations(i) = 0; % Set iterations to vary surface temperature
                     Ts_past(i) = 0;
                     Td(N,i) = 273.15; % Ice temperature is 0 degrees C
                         
-                  % Initially assume Ts = temp_deb, for all other time steps assume it's equal to previous Ts
+                  % For first time step after complete snow melt, initially assume Ts = temp_deb, for all other time steps assume it's equal to previous Ts
                      if i == tdsnow_deb(i-1)+1
                         Td(1,i) = temp_deb(i);
                      else
@@ -354,11 +347,12 @@ for n = 1:no_gridpointsx
                      end
 
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEAT DIFFUSION BY CONDIUCTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEAT DIFFUSION/CONDIUCTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          
                   % Calculate temperature profile in the debris
-                     if i == tdsnow_deb(i-1)+1 % For t = 0, which is i = 1, assume initial condition of linear temperature profile in the debris
+                  
+                     if i == tdsnow_deb(i-1)+1 % For first time step after complete snow melt, assume initial condition of linear temperature profile in the debris
             
                           Td_gradient = (Td(1,i) - Td(N,i))/debris_thickness;
             
@@ -419,16 +413,16 @@ for n = 1:no_gridpointsx
                      albsnow_deb(i) = albfirn+(albsnow-albfirn).*exp(-tsnow_sfc(i)./tsnow);
                      alb_deb(i) = albsnow_deb(i)+(albdeb-albsnow_deb(i)).*exp(-dsnow_deb(i)./dstar_d);
                    end
-          
+
+                   % Shortwave net 
                    Qnet_deb(i) = tau_deb(i).*(1-alb_deb(i)).*solarslopingsfc_deb(i);
-                   
+                   % Longwave net 
                    Lout_deb(i) = em_d_deb(i).*(stf_bltz.*Td(1,i).^4);
                    Lnet_deb(i) = lw_in_deb(i) - Lout_deb(i);
-                   
+                   % Sensible heat flux
                    SHF_deb(i) = rhoa.*cA.*(C_ex_deb).*u_AWS_deb(i).*T_diff(i);
-                 
-                   if start_moist == 0 || deg_sat == 0
-                    if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 
+                   % Latent heat flux 
+                   if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 
                          eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
                          eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
                          eS(i) = eS_saturated(i);
@@ -444,70 +438,37 @@ for n = 1:no_gridpointsx
                          qS(i) = (mwratio).*(eS(i)./p_deb(i));
                          qZ(i) = (mwratio).*(eZ(i)./p_deb(i));
                          LHF_deb(i) = 0; 
-                    end
                    end
-                   if start_moist == 1 && deg_sat == 1 || deg_sat == 2 || deg_sat == 3
-                    if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 
-                         eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
-                         eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
-                         eS(i) = eS_saturated(i);
-                         eZ(i) = ((rh_deb(i)./100)*eZ_saturated(i));
-                         qS(i) = (mwratio).*(eS(i)./p_deb(i));
-                         qZ(i) = (mwratio).*(eZ(i)./p_deb(i));
-                         LHF_deb(i) = Lv.*rhoa.*(C_ex_deb).*u_AWS_deb(i).*(qZ(i)-qS(i));
-                         if qS(i) == 0
-                             LHF_deb(i) = 0;
-                         end
-                    elseif i > 2 && dsnow_deb(i-1) == 0 && Qm_ice(i-1) > 0 || Wsnow(i-1) > 0 || prec_deb(i-1) > 0
-                         eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
-                         eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
-                         eZ(i) = ((rh_deb(i)./100)*eZ_saturated(i));
-                         eS(i) = (eZ(i).*((Td(1,i))./(temp_deb(i)))) + ((eS_saturated(i)-(eZ(i).*((Td(1,i))./(temp_deb(i)))))*(((sum(wd_deb_vol(2:N-1,i))./(N-2)))));
-                         qS(i) = (mwratio).*(eS(i)./p_deb(i));
-                         qZ(i) = (mwratio).*(eZ(i)./p_deb(i));
-                         LHF_deb(i) = Lv.*rhoa.*(C_ex_deb).*u_AWS_deb(i).*(qZ(i)-qS(i));
-                         if qS(i) == 0
-                             LHF_deb(i) = 0;
-                         end
-                    end
-                   end
-
+                   % Rain heat flux
                    if prec_deb(i) > 0 && solid_prec_glacier_deb(i) == 0 && dsnow_deb(i) == 0
                         Qrain_sfc_deb(i) = cW.*rhow.*(prec_deb(i)./(sechr)).*(temp_deb(i)-Td(1,i));
                    end
-
+                   % Conductive heat flux
                    Qc_deb(i) = k_eff_deb(2,i)*(Td(2,i) - Td(1,i))/h;
+                   % Total energy flux
                    F_deb(i) = Qnet_deb(i) + Lnet_deb(i) + SHF_deb(i) + LHF_deb(i) + Qrain_sfc_deb(i) + Qc_deb(i);
         
                    % Calculate derivative of fluxes w.r.t surface temperature
-        
+
+                   % Shortwave net 
                    dQnet_deb(i) = 0;
+                   % Longwave net 
                    dLnet_deb(i) = -4.*em_d_deb(i).*(stf_bltz).*Td(1,i).^3;
+                   % Sensible heat flux 
                    dSHF_deb(i) = -1.*rhoa.*cA.*(C_ex_deb).*u_AWS_deb(i);
-                   if start_moist == 0 || deg_sat == 0
-                    if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh
+                   % Latent heat flux 
+                   if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh
                          dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_deb).*u_AWS_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
                     else
                          dLHF_deb(i) = 0;
-                    end
                    end
-                   if start_moist == 1 && deg_sat == 1 || deg_sat == 2 || deg_sat == 3
-                    if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh
-                         dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_deb).*u_AWS_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
-                         if qS(i) == 0
-                             dLHF_deb(i) = 0;
-                         end
-                    else i > 2 && dsnow_deb(i-1) == 0 && Qm_ice(i-1) > 0 || Wsnow(i-1) > 0 || prec_deb(i-1) > 0;
-                         dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_deb).*u_AWS_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
-                         if qS(i) == 0
-                             dLHF_deb(i) = 0;
-                         end
-                    end
-                   end
+                   % Rain heat flux 
                    if prec_deb(i) > 0 && solid_prec_glacier_deb(i) == 0 && dsnow_deb(i) == 0
                         dQrain_sfc_deb(i) = -cW.*rhow.*(prec_deb(i)./(sechr));
                    end
+                   % Conductive heat flux 
                    dQc_deb(i) = -k_eff_deb(2,i)/h;
+                   % Total energy flux 
                    dF_deb(i) = dQnet_deb(i) + dLnet_deb(i) + dSHF_deb(i) + dLHF_deb(i) + dQrain_sfc_deb(i) + dQc_deb(i);
         
                  % Newton-Raphson method to solve for surface temperature
@@ -599,7 +560,6 @@ for n = 1:no_gridpointsx
                  
                      SHF_deb(i) = rhoa.*cA.*(C_ex_deb).*u_AWS_deb(i).*T_diff(i);
                      
-                     if start_moist == 0 || deg_sat == 0
                       if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh
                          eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
                          eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
@@ -616,33 +576,8 @@ for n = 1:no_gridpointsx
                          qS(i) = (mwratio).*(eS(i)./p_deb(i));
                          qZ(i) = (mwratio).*(eZ(i)./p_deb(i));
                          LHF_deb(i) = 0;
-                      end
                      end
-                     if start_moist == 1 && deg_sat == 1 || deg_sat == 2 || deg_sat == 3
-                      if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 0
-                         eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
-                         eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
-                         eS(i) = eS_saturated(i);
-                         eZ(i) = ((rh_deb(i)./100)*eZ_saturated(i));
-                         qS(i) = (mwratio).*(eS(i)./p_deb(i));
-                         qZ(i) = (mwratio).*(eZ(i)./p_deb(i));
-                         LHF_deb(i) = Lv.*rhoa.*(C_ex_deb).*u_AWS_deb(i).*(qZ(i)-qS(i));
-                         if qS(i) == 0
-                             LHF_deb(i) = 0;
-                         end
-                      elseif i > 2 && dsnow_deb(i-1) == 0 && Qm_ice(i-1) > 0 || Wsnow(i-1) > 0 || prec_deb(i-1) > 0
-                         eS_saturated(i) = 611.*exp(-Lv./R2.*(1./Td(1,i)-1/273.15));
-                         eZ_saturated(i) = 611.*exp(-Lv./R2.*(1./(temp_deb(i))-1/273.15));
-                         eZ(i) = ((rh_deb(i)./100)*eZ_saturated(i));
-                         eS(i) = (eZ(i).*((Td(1,i))./(temp_deb(i)))) + ((eS_saturated(i)-(eZ(i).*((Td(1,i))./(temp_deb(i)))))*(((sum(wd_deb_vol(2:N-1,i))./(N-2)))));
-                         qS(i) = (mwratio).*(eS(i)./p_deb(i));
-                         qZ(i) = (mwratio).*(eZ(i)./p_deb(i));
-                         LHF_deb(i) = Lv.*rhoa.*(C_ex_deb).*u_AWS_deb(i).*(qZ(i)-qS(i)); 
-                         if qS(i) == 0
-                             LHF_deb(i) = 0;
-                         end
-                      end
-                     end
+
                      if prec_deb(i) > 0 && solid_prec_glacier_deb(i) == 0 && dsnow_deb(i) == 0
                         Qrain_sfc_deb(i) = cW.*rhow.*(prec_deb(i)./(sechr)).*(temp_deb(i)-Td(1,i));
                      end
@@ -656,25 +591,10 @@ for n = 1:no_gridpointsx
                      dQnet_deb(i) = 0;
                      dLnet_deb(i) = -4.*em_d_deb(i).*(stf_bltz).*Td(1,i).^3;
                      dSHF_deb(i) = -1.*rhoa.*cA.*(C_ex_deb).*u_AWS_deb(i);
-                     if start_moist == 0 || deg_sat == 0
-                      if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 
+                     if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 
                          dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_deb).*u_AWS_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
                       else
                          dLHF_deb(i) = 0;
-                      end
-                     end
-                     if start_moist == 1 && deg_sat == 1 || deg_sat == 2 || deg_sat == 3
-                      if prec_deb(i) > 0 && dsnow_deb(i) == 0 && temp_deb(i) > 273.15+t_tresh 
-                           dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_deb).*u_AWS_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
-                           if qS(i) == 0
-                              dLHF_deb(i) = 0;
-                           end
-                      else i > 2 && dsnow_deb(i-1) == 0 && Qm_ice(i-1) > 0 || Wsnow(i-1) > 0 || prec_deb(i-1) > 0;
-                           dLHF_deb(i) = -1.*rhoa.*Lv.*(C_ex_deb).*u_AWS_deb(i).*((611.*exp(-Lv./R2.*(1./Td(1,i)-1./273.15)).*(Lv./R2.*Td(1,i).^-2)).*(mwratio/(p_deb(i))));
-                           if qS(i) == 0
-                              dLHF_deb(i) = 0;
-                           end
-                      end
                      end
                      if prec_deb(i) > 0 && solid_prec_glacier_deb(i) == 0 && dsnow_deb(i) == 0
                         dQrain_sfc_deb(i) = -cW.*rhow.*(prec_deb(i)./(sechr));
@@ -690,47 +610,20 @@ for n = 1:no_gridpointsx
                      end
 
                     end
-
-                   if start_rain == 1
-                     heat_rain;
-                   end
                 
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SUB-DEBRIS ENERGY FOR MELTING %%%%%%%%%%%%%%%%%%%%%%%%%%
                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
                     % Calculate energy for melting
-                    
-                    if start_rain == 1
-                        Qm_ice(i) = max(0,(k_eff_deb(N-1,i)*(Td(N-1,i) - Td(N,i))/h) + Q_rain_LWS(N-1,i));
-                    else
-                        Qm_ice(i) = max(0,(k_eff_deb(N-1,i)*(Td(N-1,i) - Td(N,i))/h));
-                    end
+                    Qm_ice(i) = max(0,(k_eff_deb(N-1,i)*(Td(N-1,i) - Td(N,i))/h));
         
                     if Qm_ice(i) < 0
                         Qm_ice(i) = 0;
                     end
-
-                    % Adjust temperature profile
-
-                    for j = 2:1:(N-1)
-                        if start_rain == 1
-                         Td(j,i) = Td(j,i) + t_change(j,i);
-                        else
-                         Td(j,i) = Td(j,i);
-                        end
-                    end
                        
                    end
-                   
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MOISTURE WITHIN DEBRIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    
-                   if start_moist == 1
-                       moisture_calc;
-                   end
-                                                                                                                                 
+                                                                                                                                                    
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SAVE THE VARIABLES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -758,8 +651,6 @@ for n = 1:no_gridpointsx
                  yearly_qs_deb(i,n,l) = qS(i);
                  yearly_qz_deb(i,n,l) = qZ(i);
                  yearly_qc_deb(i,n,l) = Qc_deb(i);
-                 yearly_qrain_deb(i,n,l) = Q_rain_LWS(N-1,i);
-                 yearly_qrain_temp_deb(i,n,l) = t_change(N-1,i);
                  
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MASS BALANCE CALCULATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
